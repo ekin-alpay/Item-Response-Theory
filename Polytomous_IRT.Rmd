@@ -1,0 +1,154 @@
+---
+title: "HM3"
+author: "Ekin Alpay"
+date: "2024-04-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+##Packages
+library(mirt)
+library(lattice)
+library(psychTools)
+library(dplyr)
+library(stargazer)
+library(readr)
+
+
+##Reading the Data
+data <- read_csv("Downloads/SCS_data.csv")
+attach(data)
+
+```
+
+
+
+```{r models}
+
+##Fitting the models: 
+
+mod = ' F = 1 - 10' 
+
+pcm <- mirt(data = data, model = mod, itemtype = 'Rasch', SE = TRUE)
+gpcm <- mirt(data = data, model = mod, itemtype = 'gpcm' , SE = TRUE)
+rsm <- mirt(data = data, model = mod, itemtype = 'rsm', SE = TRUE)
+nrm <- mirt(data = data, model = mod, itemtype = 'nominal', SE = TRUE)
+
+## Parameter Estimates: 
+
+nrm_param <- coef(nrm, IRTpars = TRUE, simplify = TRUE) 
+nrm_items <- nrm_param$items
+stargazer(nrm_items)
+
+
+pcm_param <- coef(pcm, IRTpars = TRUE, simplify = TRUE) 
+pcm_items <- pcm_param$items
+stargazer(pcm_items)
+
+
+gpcm_param <- coef(gpcm, IRTpars = TRUE, simplify = TRUE) 
+gpcm_items <- gpcm_param$items
+stargazer(gpcm_items)
+
+
+rsm_param <- coef(rsm, IRTpars = TRUE, simplify = TRUE) 
+rsm_items <- rsm_param$items
+stargazer(rsm_items)
+
+
+##Third item plots: 
+
+rsm_plot <- itemplot(rsm, type = 'trace', item = 3, auto.key = FALSE)
+pcm_plot <- itemplot(pcm, type = 'trace', item = 3, auto.key = FALSE)
+gpcm_plot <- itemplot(gpcm, type = 'trace', item = 3, auto.key = FALSE)
+nrm_plot <- itemplot(nrm, type = 'trace', item = 3, auto.key = FALSE)
+
+rsm_plot
+pcm_plot
+gpcm_plot
+nrm_plot
+
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=TRUE}
+
+##Testing for Equal Distances: 
+
+equal_dist <- anova(rsm, pcm)
+
+stargazer(equal_dist, summary = FALSE)
+
+##Differential Slopes Test: 
+
+gpcm_constrained <- mirt(data, model = 1, itempars = 'fixed')
+gpcm_unconstrained <- mirt(data, model = 1)
+anova(gpcm_constrained, gpcm_unconstrained)
+
+nested_model_comparison <- anova(gpcm_constrained, gpcm_unconstrained)
+
+stargazer(nested_model_comparison, summary = FALSE)
+
+## Differential Slopes Between Categories: 
+
+# Fit a nominal response model where discrimination can vary by category within items
+nrm_uncons <- mirt(data, model= mod , itemtype = "nominal")
+
+# Fit a nominal response model where discrimination is constrained to be equal across categories within items
+nrm_cons <- mirt(data, model= mod,  itemtype = "nominal", itempars = 'fixed')
+
+# Compare the models
+dif <- anova(nrm_cons, nrm_uncons)
+
+stargazer(dif, summary = FALSE)
+
+
+##Which model: 
+
+best <- anova(rsm, pcm, gpcm, nrm)
+
+stargazer(best, summary = F)
+
+```
+
+
+```{r pressure, echo=TRUE}
+
+
+##Item Plots-- it was probably a better idea to do this all with loops.. 
+
+item1_plot <- itemplot(list('GPCM' = gpcm, 'NRM' = nrm), item = 1, type = 'trace')
+item2_plot <- itemplot(list('GPCM' = gpcm, 'NRM' = nrm), item = 2, type = 'trace')
+item3_plot <- itemplot(list('GPCM' = gpcm, 'NRM' = nrm), item = 3, type = 'trace')
+item4_plot <- itemplot(list('GPCM' = gpcm, 'NRM' = nrm), item = 4, type = 'trace')
+item5_plot <- itemplot(list('GPCM' = gpcm, 'NRM' = nrm), item = 5, type = 'trace')
+item6_plot <- itemplot(list('GPCM' = gpcm, 'NRM' = nrm), item = 6, type = 'trace')
+item7_plot <- itemplot(list('GPCM' = gpcm, 'NRM' = nrm), item = 7, type = 'trace')
+item8_plot <- itemplot(list('GPCM' = gpcm, 'NRM' = nrm), item = 8, type = 'trace')
+item9_plot <- itemplot(list('GPCM' = gpcm, 'NRM' = nrm), item = 9, type = 'trace')
+item10_plot <- itemplot(list('GPCM' = gpcm, 'NRM' = nrm), item = 10, type = 'trace')
+
+
+item1_plot
+item2_plot
+item3_plot
+item4_plot
+item5_plot
+item6_plot
+item7_plot
+item8_plot
+item9_plot
+item10_plot
+
+```
+
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

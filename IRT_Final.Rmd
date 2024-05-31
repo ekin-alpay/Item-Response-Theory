@@ -1,0 +1,336 @@
+---
+title: "IRT-Final"
+author: "Ekin Alpay"
+date: "2024-05-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+##Packages:
+library(mirt)
+library(lattice)
+library(psychTools)
+library(dplyr)
+library(stargazer)
+library(readr)
+library(car)
+library(mirtCAT)
+
+##Data
+load("~/Downloads/Final_2024.Rdata")
+
+```
+
+
+```{r cars}
+
+##Fitting the models: 
+
+model <- 'F= 1 - 30'
+
+rasch_model <-  mirt(data.matQ6, model = model, itemtype = 'Rasch', SE = TRUE)
+twopl_model <- mirt(data.matQ6, model = model, itemtype = '2PL', SE = TRUE)
+threepl_model <- mirt(data.matQ6, model = model, itemtype = '3PL', SE = TRUE)
+
+rasch_params <- coef(rasch_model, IRTpars = TRUE, simplify = TRUE) 
+twopl_params <- coef(twopl_model, IRTpars = TRUE, simplify = TRUE) 
+threepl_params <- coef(threepl_model, IRTpars = TRUE, simplify = TRUE) 
+
+
+
+
+##AIC-BIC-Log:
+
+anova(rasch_model, twopl_model, threepl_model)
+
+
+##Checking S-X2
+item_fit_rasch <- itemfit(rasch_model)
+item_fit_2pl <- itemfit(twopl_model)
+item_fit_3pl <- itemfit(threepl_model)
+
+sum(which(item_fit_rasch$p > .05))
+sum(which(item_fit_2pl$p > .05))
+sum(which(item_fit_3pl$p > .05))
+
+
+##Person Fit: 
+
+person_fit_rasch <- personfit(rasch_model, stats.only = FALSE)
+person_fit_twopl <- personfit(twopl_model, stats.only = FALSE)
+person_fit_threepl <- personfit(threepl_model, stats.only = FALSE)
+
+sum(person_fit_rasch$Zh <= -1.96)
+sum(person_fit_twopl$Zh <= -1.96)
+sum(person_fit_threepl$Zh <= -1.96)
+
+
+##Table: 
+summary_data <- data.frame( model = c('Rasch', '2PL', '3PL'),
+  ItemParameters = c(2, 2, 3), 
+  AIC = c(extract.mirt(rasch_model, 'AIC'), extract.mirt(twopl_model, 'AIC'), extract.mirt(threepl_model, 'AIC')),
+BIC = c(extract.mirt(rasch_model, 'BIC'), extract.mirt(twopl_model, 'BIC'), extract.mirt(threepl_model, 'BIC')),
+  LogLike = c(logLik(rasch_model), logLik(twopl_model), logLik(threepl_model)),
+  ItemFit = c(
+ sum(which(item_fit_rasch$p > .05)),
+sum(which(item_fit_2pl$p > .05)),
+sum(which(item_fit_3pl$p > .05))
+  ),
+  PersonFit = c(
+    sum(person_fit_rasch$Zh <= -1.96),
+    sum(person_fit_twopl$Zh <= -1.96),
+    sum(person_fit_threepl$Zh <= -1.96)
+  ))
+
+
+##Chi-Sq Tests: 
+chi_rasch_twopl <- anova(rasch_model, twopl_model)
+chi_twopl_threepl <- anova(twopl_model, threepl_model)
+chisq <- anova(rasch_model, twopl_model, threepl_model)[,c(1, 4,5,6,7,8)]
+
+stargazer(summary_data, summary = FALSE)
+stargazer(chisq, summary = F)
+
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+
+##Q7
+
+##Model: 
+gpcm_mod <- 'F = 1 - 10'
+gpcm <- mirt(data.matQ7, model = gpcm_mod, itemtype = 'gpcm', SE = TRUE)
+
+##Marginal Reliability:
+
+marginal_rxx(gpcm)
+
+##Plot: 
+
+plot(gpcm, which.items=(c(9)))
+
+##Table: 
+
+coefficients <- coef(gpcm, IRTpars = TRUE, printSE = TRUE)
+
+# Your coefficients object
+coefficients <- list(
+  Item1 = data.frame(
+    Estimate = c(1.845, -1.188, -0.085, 1.805),
+    `Std. Error` = c(0.055, 0.033, 0.026, 0.044)
+  ),
+  Item2 = data.frame(
+    Estimate = c(1.720, -0.827, -0.630, 1.802),
+    `Std. Error` = c(0.052, 0.035, 0.033, 0.045)
+  ),
+  Item3 = data.frame(
+    Estimate = c(1.308, -1.741, -0.325, 0.596),
+    `Std. Error` = c(0.040, 0.051, 0.033, 0.034)
+  ),
+  Item4 = data.frame(
+    Estimate = c(2.198, -0.650, -0.631, 0.339),
+    `Std. Error` = c(0.071, 0.031, 0.030, 0.024)
+  ),
+  Item5 = data.frame(
+    Estimate = c(2.161, -0.870, -0.920, 1.240),
+    `Std. Error` = c(0.067, 0.034, 0.033, 0.032)
+  ),
+  Item6 = data.frame(
+    Estimate = c(2.229, -1.465, 0.693, 0.610),
+    `Std. Error` = c(0.072, 0.035, 0.031, 0.031)
+  ),
+  Item7 = data.frame(
+    Estimate = c(2.010, -0.810, -0.229, 1.035),
+    `Std. Error` = c(0.061, 0.029, 0.026, 0.030)
+  ),
+  Item8 = data.frame(
+    Estimate = c(1.915, -2.084, -0.494, 1.850),
+    `Std. Error` = c(0.058, 0.050, 0.026, 0.044)
+  ),
+  Item9 = data.frame(
+    Estimate = c(1.323, -0.533, -0.724, 0.371),
+    `Std. Error` = c(0.041, 0.043, 0.041, 0.033)
+  ),
+  Item10 = data.frame(
+    Estimate = c(1.515, -2.000, -0.608, 1.807),
+    `Std. Error` = c(0.047, 0.054, 0.031, 0.048)
+  )
+)
+
+coefficients_df <- bind_rows(coefficients, .id = "Item") %>%
+  mutate(row_names = rep(c("a", "b1", "b2", "b3"), 10),
+         `Item` = paste0("Item", row_number(), " - ", row_names)) %>%
+  select(-row_names)
+
+# Convert coefficients to LaTeX table
+latex_table <- stargazer(coefficients_df, summary = FALSE, type = 'latex')
+
+
+```
+
+
+
+```{r pressure, echo=FALSE}
+
+
+##Dichotomize: 
+
+dich_data <- recode(data.matQ7, 'c(0,1)=0; c(2,3)=1')
+
+##2PL Model: 
+
+dich_two <- mirt(dich_data, model = gpcm_mod, itemtype = '2PL', SE= TRUE)
+
+##Marginal Reliability:
+
+marginal_rxx(dich_two)
+
+##Plot: 
+
+plot(dich_two,  which.items = c(9))
+
+##Table: 
+
+twopl_coef <- coef(dich_two, IRTpars = TRUE, printSE = TRUE)
+
+# Your coefficients object
+twopl_table <- list(
+  Item_1 = data.frame(
+    Estimate = c(2.166, -0.023),
+    `Std. Error` = c(0.077, 0.023)
+  ),
+  Item_2 = data.frame(
+    Estimate = c(2.338, -0.370),
+    `Std. Error` = c(0.084, 0.023)
+  ),
+  Item_3 = data.frame(
+    Estimate = c(1.918, -0.389),
+    `Std. Error` = c(0.068, 0.025)
+  ),
+  Item_4 = data.frame(
+    Estimate = c(3.666, -0.446),
+    `Std. Error` = c(0.152, 0.020)
+  ),
+  Item_5 = data.frame(
+    Estimate = c(3.122, -0.639),
+    `Std. Error` = c(0.125, 0.023)
+  ),
+  Item_6 = data.frame(
+    Estimate = c(2.946, 0.426),
+    `Std. Error` = c(0.120, 0.022)
+  ),
+  Item_7 = data.frame(
+    Estimate = c(2.846, -0.136),
+    `Std. Error` = c(0.105, 0.021)
+  ),
+  Item_8 = data.frame(
+    Estimate = c(2.222, -0.449),
+    `Std. Error` = c(0.080, 0.024)
+  ),
+  Item_9 = data.frame(
+    Estimate = c(2.384, -0.440),
+    `Std. Error` = c(0.086, 0.023)
+  ),
+  Item_10 = data.frame(
+    Estimate = c(1.778, -0.532),
+    `Std. Error` = c(0.065, 0.027)
+  )
+)
+# Adjust the second code for 2PL results
+coefficients_df_two <- bind_rows(twopl_table, .id = "Item") %>%
+  mutate(row_names = rep(c("a", "b"), each = 10),  # Adjust row_names for 2PL: "a" and "b"
+         `Item` = paste0("Item", rep(1:10, each = 2), " - ", row_names)) %>%
+  select(-row_names)  # Adjust column names here as needed
+
+stargazer(coefficients_df_two, summary = FALSE)
+
+```
+
+
+```{r pressure, echo=FALSE}
+
+##Obtaining Latent Traits with EAP: 
+
+gpcm_eap <- fscores(gpcm, full.scores = TRUE)
+twopl_eap <- fscores(dich_two, full.scores = TRUE)
+
+
+LT_table <- data.frame(GPCMEstimates = c(head(gpcm_eap, 10)),
+                       TwoPLEstimates = c(head(twopl_eap, 10)))
+
+stargazer(LT_table, summary = FALSE, type = 'latex')
+                       
+##Plots 
+
+plot(gpcm_eap)
+plot(twopl_eap)
+
+##Test Information: 
+
+twopl_testinfo <- plot(twopl, type = 'info')
+gpcm_testinfo <- plot(gpcm, type = 'info')
+
+twopl_testinfo
+gpcm_testinfo
+
+##Relative Efficiency Plots: 
+
+seq.th <- seq(-4, 4, by = .01)
+
+info1 <- testinfo(gpcm, seq.th) 
+info2 <- testinfo(dich_two, seq.th) 
+
+info3 <- testinfo(gpcm, theta)
+info4 <- testinfo(dich_two, theta)
+
+info_tab <- data.frame(Theta = c(theta),
+                       GPCM_Info = c(info3),
+                       Twopl_Info = c(info4))
+stargazer(info_tab, summary = F, type = 'latex')
+
+plot(seq.th, info1/info2, type = 'l', xlab = expression(theta), 
+     ylab = expression(paste('RE(', theta, ')')), lwd = 2)
+abline(h = 1, lty = 2, lwd = 2)
+
+
+```
+
+
+```{r pressure, echo=FALSE}
+
+##Q5: 
+
+##Defining the Data Frame as a Mirt Object: 
+a <- c(1.72, 1.26, 1.56, 0.73, 1.31, 2.26, 1.45, 1.97, 0.68, 1.17, 1.09, 1.21, 1.92, 1.67, 1.39)
+b <- c(1.6, 1.24, 1.72, 1.43, 1.45, 1.41, 1.83, 1.43, 1.03, 1.07, 1.68, 1.41, 0.83, 1.55, 0.69)
+c <- c(0.14, 0.03, 0.15, 0.16, 0.07, 0.09, 0.15, 0.19, 0.05, 0.01, 0.17, 0.11, 0.15, 0.16, 0.02)
+
+pars.3PL.RE <- data.frame(a1 = a, d = -b*a, g = c)
+thp_model <- generate.mirt_object(parameters = pars.3PL.RE, itemtype = '3PL')
+
+
+##Marginal Reliability: 
+
+marginal_rxx(thp_model)
+
+##Plot
+plot(thp_model, type= 'info')
+
+
+##Test Information: 
+theta <- c(-1, 0, 1, 1.5)
+info <- testinfo(thp_model, theta, which.items = c(1:15))
+info_q5 <- cbind(theta = theta, info)
+
+stargazer(info_q5, summary = FALSE, type = 'latex')
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

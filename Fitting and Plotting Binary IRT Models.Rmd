@@ -1,0 +1,124 @@
+---
+title: "Binary_IRT"
+author: "Ekin Alpay"
+date: "2024-02-18"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#setwd("~/Documents/GitHub")
+
+##Packages
+library(mirt) ##multidimensional IRT 
+library(mirtCAT)
+library(psychTools)
+library(stargazer)
+library(gridExtra)
+library(ggpubr)
+ 
+##Generating the data with the mirt package for trial: 
+
+a <- c(1.00, 1.50, 2.00, 2.20, 1.75) ## a and b parameters for 5 items. 
+b <- c(-2.00, 0.00, 2.00, -1.00, 1.00)
+
+N <- 10000 
+
+theta <- matrix(rnorm(N, 0, 1), N, 1) 
+
+hist(theta) ##to see the normal distribution. 
+
+sim_dat <- simdata(a, -b*a, itemtype = '2PL', Theta = theta) ##Generating response data. 
+
+
+
+```
+
+1.  Generate 10,000 examinees from a standard normal distribution; that is, assuming the latent trait θ\~N(0,1), generate 10,000 persons from this distribution. Plot a histogram to show these are normally distributed. Simulate response data for the 10,000 persons assuming the five 2PL items on the test are true.
+
+In the previous chunk generated the response data with mirt package. In the next chunk, I will fit the models.
+
+```{r cars}
+
+##Fitting the 1PL model: 
+onepl_mod <- 'F = 1 - 5
+CONSTRAIN = (1 - 5, a1)'
+
+##Model constraint for 3PL model:
+tpl_mod <- 'F = 1 - 5'
+
+simdata_1PL <- mirt(sim_dat, model = onepl_mod) ##the fitting function still runs on 2PL but we put a constrain on the discrimination parameter to be equal for all items. 
+coefs1 <- coef(simdata_1PL, simplify = TRUE, IRTpars = TRUE)$items
+
+##Fitting the 2PL model: 
+simdata_2PL <- mirt(sim_dat, model = 1) ##no item type specified because the default is 2PL.
+coefs2 <- coef(simdata_2PL, simplify = TRUE, IRTpars = TRUE)$items ##parameters come pretty close. 
+
+##Fitting 3PL model: 
+simdata_3PL <- mirt(sim_dat, model = tpl_mod, itemtype = '3PL') 
+coefs3 <- coef(simdata_3PL, simplify = TRUE, IRTpars = TRUE)$items ##adds the g parameter that is the guessing parameter in 3PL. 
+
+stargazer( list(coefs1, coefs2, coefs3)) ## for simplicity
+
+
+##Model for True ICC: 
+
+param_2PL <- data.frame(a1 = a, d = -b*a)
+true_icc_mod <- generate.mirt_object(parameters = param_2PL, itemtype = '2PL')
+coef(true_icc_mod, IRTpars = TRUE, simplify = TRUE)$items ##all parameters are set. 
+
+```
+
+2.  Fit the 1PL (note: not the Rasch!), 2PL, and 3PL models using these data. For each item, plot the estimated ICCs for the 1PL, 2PL, and 3PL models along with the true ICC on a single figure; that is, you should have a figure for each item (i.e., five figures in total) that each show four separate lines. Make sure to include a legend in each. What do you see?
+
+3.  Which of the three models above seems to fit these data the best; how can you tell
+
+```{r pressure, echo=FALSE}
+
+
+plot1 <- itemplot(list('1PL' = simdata_1PL, '2PL' = simdata_2PL, '3PL' = simdata_3PL, 'T-ICC'=true_icc_mod), item = 1, type = 'trace')
+
+plot2 <- itemplot(list('1PL' = simdata_1PL, '2PL' = simdata_2PL, '3PL' = simdata_3PL, 'T-ICC'=true_icc_mod), item = 2, type = 'trace')
+
+plot3 <- itemplot(list('1PL' = simdata_1PL, '2PL' = simdata_2PL, '3PL' = simdata_3PL, 'T-ICC'=true_icc_mod), item = 3, type = 'trace')
+
+plot4 <- itemplot(list('1PL' = simdata_1PL, '2PL' = simdata_2PL, '3PL' = simdata_3PL, 'T-ICC'=true_icc_mod), item = 4, type = 'trace')
+
+plot5 <- itemplot(list('1PL' = simdata_1PL, '2PL' = simdata_2PL, '3PL' = simdata_3PL, 'T-ICC'=true_icc_mod), item = 5, type = 'trace')
+
+plots1 <- grid.arrange(plot1, plot2,plot3, plot4, plot5, ncol= 2, top = text_grob("Comparing Models", size = 15, face = "bold"))
+
+plots2 <- grid.arrange(plot3, plot4, ncol= 2, top = text_grob("Comparing Models", size = 15, face = "bold"))
+
+
+```
+
+4.  Fit the 1PL and the Rasch models using these data. Plot the estimated ICCs for the 1PL and Rasch one single figure; that is, you should have one figure that shows ten separate lines, one for each item/model combination. I recommend using color to show the model, and line type to show the item number. Why, if the fit of the Rasch and 1PL models are the same (and they should be if you did it correctly), do they appear to be different on the plot? What is the implication for the interpretation of θ-units?
+
+```{r Rasch vs 1PL, echo=FALSE}
+
+##Comparing 1PL to Rasch Model: 
+
+simdata_1PL <- mirt(sim_dat, model = onepl_mod) 
+coefs1 <- coef(simdata_1PL, simplify = TRUE, IRTpars = TRUE)$items
+
+rasch <- mirt(sim_dat, model = 1, itemtype = 'Rasch', SE = TRUE) ## model specifies the constraints and item type is Rasch. 
+r_coef <- coef(rasch, IRTpars = TRUE, simplify = TRUE)$items ##as seen here, Rasch model set a=1 
+
+stargazer(list(coefs1, r_coef)) #Making a list of both models for simplicity. Also generates the latex codes. 
+
+##Plotting the two models: 
+
+plot6 <-plot(rasch, type = 'trace', which.items = c(1:5), facet_items = FALSE)
+plot7 <- plot(simdata_1PL, type = 'trace', which.items = c(1:5), facet_items = FALSE)
+
+plot6 + plot7 
+
+grid.arrange(plot6, plot7, ncol=1, top = text_grob("Item Probability Functions", size = 15, face = "bold"))
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

@@ -1,0 +1,187 @@
+---
+title: "IRT-Midterm"
+author: "Ekin Alpay"
+Q10_datae: "2024-03-04"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(mirt)
+library(lattice)
+library(dplyr)
+library(stargazer)
+library(psychTools)
+
+#load('Downloads/MidtermExam.RQ10_dataa') ##loading the Q10_data 
+
+```
+
+
+```{r cars, echo= FALSE}
+
+##fit the models: 
+
+onepl_mod = 'F=1-8
+   CONSTRAIN = (1 - 8, a1)'
+
+onepl <- mirt(Q10_data, model = onepl_mod, SE = TRUE)
+twopl <- mirt(Q10_data, model = 1, itemtype = '2PL', SE = TRUE)
+
+threepl <- mirt(Q10_data, model = 1, itemtype = '3PL', SE = TRUE, 
+            technical = list(NCYCLES = 10000))
+
+fourpl <- mirt(Q10_data, model = 1, itemtype = '4PL', SE = TRUE,
+technical = list(NCYCLES = 10000))
+
+```
+
+
+```{r}
+
+# Test responses
+test <- c(0, 1, 1, 1, 0)
+
+# Item parameters 
+
+a <- c(1, 1, 1.5, 1.5, 1.5)
+b <- c(2, 1, -1, 0, 1)
+c <- c(.10, .15, .10, .05, .20)
+
+N <- 1
+
+theta <- c(-1, 0, 1) 
+
+############ Trying to define a function #####
+
+# Define the logistic function
+logistic <- function(theta, a, b, c) {
+  c + (1 - c) / (1 + exp(-a * (theta - b)))
+} ##Is this the correct formula? I found some other formulas that account for the test answer right here. 
+
+# Log likelihood function
+log_likelihood <- function(theta, test, a, b, c) {
+  sum(test * log(logistic(theta, a, b, c)) + (1 - theta) * log(1 - logistic(theta, a, b, c)))
+}
+
+# Define a function to maximize
+likelihood_function <- function(theta) {
+  -log_likelihood(theta, test, a, b, c)
+}
+
+-log_likelihood(-1, 0, 1 , 2,0.10)
+-log_likelihood(-1, 1, 1, 1, 0.15)
+-log_likelihood(-1, 1, 1.5, -1 , .10)
+-log_likelihood(-1, 1, 1.5, 0, 0.05)
+-log_likelihood(-1, 0, 1.5, 1, .20)
+
+
+
+
+##Data-Frame:
+## THETA = -1 
+
+mle_byitem_thet_m1 <- data.frame(item = c(1:5),
+                         test=c(0, 1, 1, 1, 0),
+a= c(1, 1, 1.5, 1.5, 1.5),
+b= c(2, 1, -1, 0, 1),
+c= c(.10, .15, .10, .05, .20),
+theta = c(-1),
+MLE= c(0.307, 1.959, 2.194, 2.004, 0.543)
+)
+
+##THETA = 0
+
+-log_likelihood(0, 0, 1 , 2,0.10)
+-log_likelihood(0, 1, 1, 1, 0.15)
+-log_likelihood(0, 1, 1.5, -1 , .10)
+-log_likelihood(0, 1, 1.5, 0, 0.05)
+-log_likelihood(0, 0, 1.5, 1, .20)
+
+mle_byitem_thet0 <- data.frame(item = c(1:5),
+                         test=c(0, 1, 1, 1, 0),
+a= c(1, 1, 1.5, 1.5, 1.5),
+b= c(2, 1, -1, 0, 1),
+c= c(.10, .15, .10, .05, .20),
+theta = c(0),
+MLE= c(0.232, 1.447, 1.986, 1.388, 1.424)
+)
+
+##Theta = 1 
+
+-log_likelihood(1, 0, 1 , 2,0.10)
+-log_likelihood(1, 1, 1, 1, 0.15)
+-log_likelihood(1, 1, 1.5, -1 , .10)
+-log_likelihood(1, 1, 1.5, 0, 0.05)
+-log_likelihood(1 , 0, 1.5, 1, .20)
+
+mle_byitem_thet1 <- data.frame(item = c(1:5),
+                         test=c(0, 1, 1, 1, 0),
+a= c(1, 1, 1.5, 1.5, 1.5),
+b= c(2, 1, -1, 0, 1),
+c= c(.10, .15, .10, .05, .20),
+theta = c(1),
+MLE= c(0, 0.553, 0.436, 0.190, 0)
+)
+
+stargazer(mle_byitem_thet_m1, summary = FALSE)
+stargazer(mle_byitem_thet0, summary = FALSE)
+stargazer(mle_byitem_thet1, summary = FALSE)
+
+```
+
+
+```{r Q10 Data, echo=FALSE}
+m1 <- M2(onepl)
+m2 <- M2(twopl)
+m3 <- M2(threepl)
+m4 <- M2(fourpl)
+
+## Table of Model Fit Values
+
+a <- data.frame(model = c('1PL', '2PL', '3PL', '4PL'),
+           M2 = c(m1$M2, m2$M2, m3$M2, m4$M2),
+           M2_df = c(m1$df, m2$df, m3$df, m4$df),
+           M2_p_value = c(m1$p, m2$p, m3$p, m4$p),
+           RMSEA= c(extract.mirt(onepl, 'RMSEA'), extract.mirt(twopl, 'RMSEA'), extract.mirt(threepl, 'RMSEA'), extract.mirt(fourpl, 'RMSEA')), 
+            AIC= c(extract.mirt(onepl, 'AIC'), extract.mirt(twopl, 'AIC'), extract.mirt(threepl, 'AIC'), extract.mirt(fourpl, 'AIC'))
+           )
+                   
+##Model Likelihood Ratios:
+
+onepl_p =anova(onepl, twopl)
+anova(onepl, threepl)$p
+anova(onepl, fourpl)$p
+
+b <- data.frame(model = c('1PL', '2PL', '3PL', '4PL'),
+  anova(onepl, twopl, threepl, fourpl))
+
+b1 <- b[, -c(2:5)]
+
+last <- t(inner_join(a, b1, by='model'))
+
+stargazer(last)
+
+## Model Parameters
+
+model_param <- t(data.frame(coef(twopl)))
+
+stargazer(apply(model_param, 2, 
+      function(x) round(x, digits = 2)))
+
+boxplot(model_param)
+
+##Expected Total Score:
+
+plot_exp <- plot(twopl)
+
+##Item Plot: 
+
+plot_icc<-plot(twopl, type = 'trace', which.items = c(1:8), facet_items = FALSE)
+
+```
+
+
